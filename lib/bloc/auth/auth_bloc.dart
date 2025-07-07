@@ -8,7 +8,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUser loginUser;
   final RegisterUser registerUser;
 
-  AuthBloc({required this.loginUser, required this.registerUser}) : super(AuthInitial()) { 
+  AuthBloc({required this.loginUser, required this.registerUser}) : super(AuthInitial()) {
     on<LoginRequested>((event, emit) async {
       print("Intentando iniciar sesión...");
       print("Email: ${event.email}, Password: ${event.password}");
@@ -22,23 +22,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         },
         (userModel) {
           print("Login exitoso");
-          emit(AuthSuccess(userModel));  // Aquí paso el UserModel
+          emit(AuthSuccess(userModel));
         },
       );
     });
 
     on<RegisterRequested>((event, emit) async {
+      print("Intentando registrar...");
       emit(AuthLoading());
       final result = await registerUser.call(event.name, event.email, event.password);
       result.fold(
         (failure) => emit(AuthFailure(failure.message)),
-        (success) => emit(AuthSuccess(success)),  // Considera pasar UserModel si quieres loguear tras registro
+        (success) => emit(AuthSuccess(success)),
       );
     });
 
     on<LogoutRequested>((event, emit) async {
       print("Cerrando sesión...");
-      // Aquí podrías eliminar tokens, limpiar preferencias, etc.
       emit(AuthInitial());
     });
   }

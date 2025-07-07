@@ -3,16 +3,31 @@
 
     <!-- 🔐 PERMISOS -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+      <!-- Permisos de ubicación -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+      <!-- Permisos para almacenamiento si usas la galería -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+       <!-- Permisos de cámara -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+
 
     <application
         android:label="alert_world"
         android:name="${applicationName}"
+        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher">
+           <meta-data
+        android:name="com.google.android.geo.API_KEY"
+        android:value="AIzaSyAyn6sc9AV_nbUGG3WOnYSbVLN_08aVb6k" />
+
         
         <activity
             android:name=".MainActivity"

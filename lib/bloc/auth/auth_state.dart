@@ -10,8 +10,9 @@ class AuthSuccess extends AuthState {
 
   AuthSuccess(this.user);
 }
-
+// auth_state.dart
 class AuthFailure extends AuthState {
-  final String error;
-  AuthFailure(this.error);
+  final String message;
+  AuthFailure(this.message);
 }
+

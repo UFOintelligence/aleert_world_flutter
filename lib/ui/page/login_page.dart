@@ -19,7 +19,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Login'),
+        title: const Text('Login'),
         automaticallyImplyLeading: false,
         centerTitle: true,
       ),
@@ -27,7 +27,10 @@ class _LoginPageState extends State<LoginPage> {
         listener: (context, state) {
           if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.error)),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
             );
           } else if (state is AuthSuccess) {
             final user = state.user;
@@ -42,12 +45,12 @@ class _LoginPageState extends State<LoginPage> {
               showDialog(
                 context: context,
                 builder: (_) => AlertDialog(
-                  title: Text("Acceso restringido"),
-                  content: Text("Por favor inicie sesión desde la web."),
+                  title: const Text("Acceso restringido"),
+                  content: const Text("Por favor inicie sesión desde la web."),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text("OK"),
+                      child: const Text("OK"),
                     ),
                   ],
                 ),
@@ -57,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
         },
         builder: (context, state) {
           if (state is AuthLoading) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           return Padding(
@@ -66,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
               key: _formKey,
               child: Column(
                 children: [
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Center(
                     child: ClipOval(
                       child: Image.asset(
@@ -77,10 +80,10 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   TextFormField(
                     controller: emailCtrl,
-                    decoration: InputDecoration(labelText: 'Email'),
+                    decoration: const InputDecoration(labelText: 'Email'),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'El email es obligatorio';
@@ -91,10 +94,10 @@ class _LoginPageState extends State<LoginPage> {
                       return null;
                     },
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: passCtrl,
-                    decoration: InputDecoration(labelText: 'Password'),
+                    decoration: const InputDecoration(labelText: 'Password'),
                     obscureText: true,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -106,19 +109,20 @@ class _LoginPageState extends State<LoginPage> {
                       return null;
                     },
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
-                        context.read<AuthBloc>().add(
-                              LoginRequested(
-                                email: emailCtrl.text,
-                                password: passCtrl.text,
-                              ),
-                            );
+                       context.read<AuthBloc>().add(
+  LoginRequested(
+    email: emailCtrl.text.trim(),
+    password: passCtrl.text.trim(),
+  ),
+);
+
                       }
                     },
-                    child: Text('Login'),
+                    child: const Text('Login'),
                   ),
                   TextButton(
                     onPressed: () {
@@ -132,7 +136,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       );
                     },
-                    child: Text("¿No tienes cuenta? Regístrate aquí"),
+                    child: const Text("¿No tienes cuenta? Regístrate aquí"),
                   ),
                 ],
               ),

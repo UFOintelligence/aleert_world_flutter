@@ -24,6 +24,7 @@ Future<void> init() async {
   // AUTH
   sl.registerLazySingleton<AuthRemoteDataSource>(() => AuthRemoteDataSourceImpl(
         client: sl(),
+        //baseUrl: 'http://10.0.2.2:8000/api',
         baseUrl: 'http://10.0.2.2:8000/api',
       ));
   sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(remoteDataSource: sl()));
@@ -33,6 +34,7 @@ Future<void> init() async {
   // ALERTAS
  sl.registerLazySingleton<AlertRemoteDataSource>(() => AlertRemoteDataSourceImpl(
   client: sl(),
+  //baseUrl: 'http://10.0.2.2:8000/api',
   baseUrl: 'http://10.0.2.2:8000/api',
 ));
 

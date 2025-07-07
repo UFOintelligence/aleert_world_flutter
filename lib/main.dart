@@ -1,3 +1,4 @@
+import 'package:alert_world/ui/page/map_selector_page.dart';
 import 'package:alert_world/ui/page/panic_page.dart';
 import 'package:alert_world/ui/page/alert_list_page.dart';
 import 'package:alert_world/ui/page/alert_map_page.dart';
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
           '/register': (_) => RegisterPage(),
           '/alert_list': (_) => const AlertList(),
           '/alert_map': (_) => const AlertMapPage(),
+          '/map_selector': (_) => const MapSelectorPage(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/home') {
@@ -53,40 +55,39 @@ class MyApp extends StatelessWidget {
             if (args == null || !args.containsKey('user')) {
               return _errorRoute('Faltan argumentos para la ruta /home');
             }
-
-            final UserModel user = args['user'];
-
+            final UserModel user = args['user'] as UserModel;
             return MaterialPageRoute(
               builder: (_) => HomePage(user: user),
             );
           }
 
           if (settings.name == '/report') {
-            final args = settings.arguments as Map<String, String>?;
-
-            if (args == null || !args.containsKey('userName')) {
-              return _errorRoute('Falta el argumento userName en /report');
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args == null || !args.containsKey('userName') || !args.containsKey('userId')) {
+              return _errorRoute('Faltan argumentos para la ruta /crear-alerta');
             }
-
             return MaterialPageRoute(
               builder: (_) => ReportIncidentPage(
-                userName: args['userName']!,
+                userName: args['userName'] as String,
+                userId: args['userId'] as int,
               ),
             );
           }
 
           if (settings.name == '/profile') {
-            final args = settings.arguments as Map?;
-            final userName = args?['userName'] ?? 'Usuario';
-
+            final args = settings.arguments;
+            if (args == null || args is! UserModel) {
+              return _errorRoute('Faltan argumentos para la ruta /profile');
+            }
+            final UserModel user = args;
             return MaterialPageRoute(
-              builder: (_) => ProfilePage(userName: userName),
+              builder: (_) => UserProfilePage(user: user),
             );
           }
 
-          if (settings.name == '/panic') {
-            return MaterialPageRoute(builder: (_) => const PanicPage());
-          }
+          // if (settings.name == '/panic') {
+          //   return MaterialPageRoute(builder: (_) => const PanicPage());
+          // }
 
           return _errorRoute('Ruta no encontrada: ${settings.name}');
         },

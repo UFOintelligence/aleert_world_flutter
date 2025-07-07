@@ -1,45 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../bloc/auth/auth_bloc.dart';
+import '../../bloc/auth/auth_event.dart';
+import '../../features/auth/data/models/user_model.dart';
 
-class ProfilePage extends StatefulWidget {
-  final String userName;
+class UserProfilePage extends StatelessWidget {
+  final UserModel user;
 
-  const ProfilePage({super.key, required this.userName});
+  const UserProfilePage({Key? key, required this.user}) : super(key: key);
 
-  @override
-  State<ProfilePage> createState() => _ProfilePageState();
-}
-
-class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Perfil'),
-        automaticallyImplyLeading: true, // Muestra botón "atrás"
+        title: const Text('Mi Perfil'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              context.read<AuthBloc>().add(LogoutRequested());
+              Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+            },
+          ),
+        ],
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const SizedBox(height: 20),
             CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.blue,
-              child: Text(
-                widget.userName.isNotEmpty
-                    ? widget.userName[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(fontSize: 30, color: Colors.white),
-              ),
+              radius: 50,
+              backgroundImage: user.avatarUrl != null
+                  ? NetworkImage(user.avatarUrl!)
+                  : const AssetImage('assets/default_avatar.png') as ImageProvider,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
-              'Bienvenido, ${widget.userName}',
-              style: const TextStyle(fontSize: 20),
+              user.name,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Tu perfil aún está en construcción.',
-              style: TextStyle(color: Colors.grey),
+            Text(
+              user.email,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Chip(
+              label: Text('Rol: ${user.rol}'),
+              backgroundColor: Colors.blue.shade100,
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Aquí podrías abrir una pantalla para editar perfil
+              },
+              icon: const Icon(Icons.edit),
+              label: const Text("Editar Perfil"),
             ),
           ],
         ),

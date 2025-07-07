@@ -21,54 +21,54 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Registro'),
-         centerTitle: true,
+        title: const Text('Registro'),
+        centerTitle: true,
       ),
       body: BlocConsumer<AuthBloc, AuthState>(
         listenWhen: (previous, current) =>
             current is AuthSuccess || current is AuthFailure,
         listener: (context, state) {
           if (state is AuthFailure) {
-            
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.error)),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
             );
           } else if (state is AuthSuccess) {
-               final user = state.user; 
-           Navigator.pushNamed(
-                context,
-                '/home',
-                arguments: {'user': user},
-              );
+            final user = state.user;
+            Navigator.pushNamed(
+              context,
+              '/home',
+              arguments: {'user': user},
+            );
           }
         },
         builder: (context, state) {
           if (state is AuthLoading) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Form(
-              
               key: _formKey,
               child: ListView(
                 children: [
-                 Center(
-  child: ClipOval(
-    child: Image.asset(
-      'assets/logo.jpeg',
-      width: 120,
-      height: 120,
-      fit: BoxFit.cover, // Para que llene el círculo correctamente
-    ),
-  ),
-),
-
-          
+                  Center(
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/logo.jpeg',
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   TextFormField(
                     controller: nameCtrl,
-                    decoration: InputDecoration(labelText: 'Nombre completo'),
+                    decoration: const InputDecoration(labelText: 'Nombre completo'),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'El nombre es obligatorio';
@@ -76,10 +76,10 @@ class _RegisterPageState extends State<RegisterPage> {
                       return null;
                     },
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: emailCtrl,
-                    decoration: InputDecoration(labelText: 'Correo electrónico'),
+                    decoration: const InputDecoration(labelText: 'Correo electrónico'),
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -91,10 +91,10 @@ class _RegisterPageState extends State<RegisterPage> {
                       return null;
                     },
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: passCtrl,
-                    decoration: InputDecoration(labelText: 'Contraseña'),
+                    decoration: const InputDecoration(labelText: 'Contraseña'),
                     obscureText: true,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -106,10 +106,10 @@ class _RegisterPageState extends State<RegisterPage> {
                       return null;
                     },
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: confirmPassCtrl,
-                    decoration: InputDecoration(labelText: 'Confirmar contraseña'),
+                    decoration: const InputDecoration(labelText: 'Confirmar contraseña'),
                     obscureText: true,
                     validator: (value) {
                       if (value != passCtrl.text) {
@@ -118,20 +118,20 @@ class _RegisterPageState extends State<RegisterPage> {
                       return null;
                     },
                   ),
-                  SizedBox(height: 24),
+                  const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         context.read<AuthBloc>().add(
                               RegisterRequested(
-                                name: nameCtrl.text,
-                                email: emailCtrl.text,
-                                password: passCtrl.text,
+                                name: nameCtrl.text.trim(),
+                                email: emailCtrl.text.trim(),
+                                password: passCtrl.text.trim(),
                               ),
                             );
                       }
                     },
-                    child: Text('Registrarse'),
+                    child: const Text('Registrarse'),
                   ),
                 ],
               ),

@@ -12,12 +12,12 @@ class AlertRepositoryImpl implements AlertRepository {
  @override
 Future<Either<Failure, List<AlertEntity>>> getAlertas() async {
   try {
-    final models = await remoteDataSource.obtenerAlertas();
-    final entities = models.map((e) => e.toEntity()).toList();
+    final entities = await remoteDataSource.obtenerAlertas(); // ✅ ya devuelve entidades
     return Right(entities);
   } catch (e) {
     return Left(Failure('Error al obtener alertas: ${e.toString()}'));
   }
 }
+
 
 }
