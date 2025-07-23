@@ -1,44 +1,59 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
+import 'package:better_player_enhanced/better_player.dart';
 
-class VideoWidget extends StatefulWidget {
+class BetterVideoWidget extends StatefulWidget {
   final String videoUrl;
 
-  const VideoWidget({Key? key, required this.videoUrl}) : super(key: key);
+  const BetterVideoWidget({Key? key, required this.videoUrl}) : super(key: key);
 
   @override
-  State<VideoWidget> createState() => _VideoWidgetState();
+  State<BetterVideoWidget> createState() => _BetterVideoWidgetState();
 }
 
-class _VideoWidgetState extends State<VideoWidget> {
-  late VideoPlayerController _videoController;
+class _BetterVideoWidgetState extends State<BetterVideoWidget> {
+  late BetterPlayerController _betterPlayerController;
 
   @override
   void initState() {
     super.initState();
-    _videoController = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
-      ..initialize().then((_) {
-        setState(() {});
-        _videoController.setLooping(true);
-        _videoController.play();
-      });
+
+    BetterPlayerDataSource dataSource = BetterPlayerDataSource(
+      BetterPlayerDataSourceType.network,
+      widget.videoUrl,
+      cacheConfiguration: const BetterPlayerCacheConfiguration(
+        useCache: true,
+        preCacheSize: 10 * 1024 * 1024, // 10MB
+        maxCacheSize: 100 * 1024 * 1024, // 100MB
+        maxCacheFileSize: 10 * 1024 * 1024,
+      ),
+    );
+
+    _betterPlayerController = BetterPlayerController(
+      const BetterPlayerConfiguration(
+        aspectRatio: 16 / 9,
+        autoPlay: true,
+        looping: true, // Puedes cambiar a false si no quieres loop
+        controlsConfiguration: BetterPlayerControlsConfiguration(
+          enableFullscreen: true,
+          enablePlayPause: true,
+          showControlsOnInitialize: true,
+        ),
+      ),
+      betterPlayerDataSource: dataSource,
+    );
   }
 
   @override
   void dispose() {
-    _videoController.dispose();
+    _betterPlayerController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_videoController.value.isInitialized) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return AspectRatio(
-      aspectRatio: _videoController.value.aspectRatio,
-      child: VideoPlayer(_videoController),
+      aspectRatio: 16 / 9,
+      child: BetterPlayer(controller: _betterPlayerController),
     );
   }
 }

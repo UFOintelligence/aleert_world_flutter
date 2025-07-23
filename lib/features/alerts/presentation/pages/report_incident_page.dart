@@ -27,6 +27,7 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
   final _formKey = GlobalKey<FormState>();
   final _descripcionController = TextEditingController();
   final _otroTipoController = TextEditingController();
+  final _scrollController = ScrollController();
 
   File? _mediaFile;
   String? _mediaType;
@@ -48,9 +49,11 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
     if (permission == LocationPermission.denied) return;
 
     final pos = await Geolocator.getCurrentPosition();
-    setState(() {
-      _position = pos;
-    });
+    if (mounted) {
+      setState(() {
+        _position = pos;
+      });
+    }
   }
 
   Future<void> _pickMedia({required bool isVideo, required ImageSource source}) async {
@@ -68,6 +71,7 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
         _videoController?.dispose();
         _videoController = VideoPlayerController.file(_mediaFile!)
           ..initialize().then((_) {
+            if (!mounted) return;
             setState(() {});
             _videoController!.setLooping(true);
             _videoController!.play();
@@ -79,9 +83,11 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
   Future<void> _submitAlert() async {
     if (!_formKey.currentState!.validate()) return;
     if (_position == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Esperando ubicación GPS...")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Esperando ubicación GPS...")),
+        );
+      }
       return;
     }
 
@@ -108,15 +114,17 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
     final response = await request.send();
     final responseBody = await response.stream.bytesToString();
 
-    if (response.statusCode == 201) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Alerta creada exitosamente")),
-      );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error al crear la alerta: $responseBody")),
-      );
+    if (mounted) {
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("✅ Alerta creada exitosamente")),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ Error al crear la alerta: $responseBody")),
+        );
+      }
     }
   }
 
@@ -125,6 +133,7 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
     _descripcionController.dispose();
     _otroTipoController.dispose();
     _videoController?.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -137,6 +146,7 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
         child: Form(
           key: _formKey,
           child: ListView(
+            controller: _scrollController,
             children: [
               const Text("📄 Información de la alerta", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
@@ -232,10 +242,37 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
                           headingAccuracy: 1.0,
                         );
                       });
+
+                      // Scroll automático al mapa
+                      await Future.delayed(const Duration(milliseconds: 300));
+                      _scrollController.animateTo(
+                        _scrollController.position.maxScrollExtent,
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeInOut,
+                      );
                     }
                   },
                   icon: const Icon(Icons.edit_location_alt),
                   label: const Text("Elegir otra ubicación"),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 200,
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: LatLng(_position!.latitude, _position!.longitude),
+                      zoom: 16,
+                    ),
+                    markers: {
+                      Marker(
+                        markerId: const MarkerId('current'),
+                        position: LatLng(_position!.latitude, _position!.longitude),
+                      )
+                    },
+                    zoomControlsEnabled: false,
+                    myLocationEnabled: false,
+                    liteModeEnabled: true,
+                  ),
                 ),
               ] else
                 const Center(child: CircularProgressIndicator()),

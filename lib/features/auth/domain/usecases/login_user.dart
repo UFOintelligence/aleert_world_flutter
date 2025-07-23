@@ -3,8 +3,6 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../data/models/user_model.dart';
 
-
-
 class LoginUser {
   final AuthRepository repository;
 

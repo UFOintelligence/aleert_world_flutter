@@ -1,12 +1,13 @@
-
-import '../entities/alert_entity.dart';
 import 'package:dartz/dartz.dart';
+import 'package:alert_world/features/alerts/domain/entities/alert_entity.dart';
+import 'package:alert_world/core/error/failures.dart';
 
 abstract class AlertRepository {
   Future<Either<Failure, List<AlertEntity>>> getAlertas();
-}
 
-class Failure {
-  final String message;
-  Failure(this.message);
+  // Devuelve AlertEntity 
+  Future<Either<Failure, AlertEntity>> toggleLike({
+    required int alertId,
+    required String userId,
+  });
 }

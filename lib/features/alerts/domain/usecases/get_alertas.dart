@@ -1,13 +1,14 @@
+import 'package:dartz/dartz.dart';
 import '../repositories/alert_repository.dart';
 import '../entities/alert_entity.dart';
-import 'package:dartz/dartz.dart';
+import 'package:alert_world/core/error/failures.dart' as core;
 
 class GetAlertas {
   final AlertRepository repository;
 
   GetAlertas(this.repository);
 
-  Future<Either<Failure, List<AlertEntity>>> call() {
+  Future<Either<core.Failure, List<AlertEntity>>> call() {
     return repository.getAlertas();
   }
 }

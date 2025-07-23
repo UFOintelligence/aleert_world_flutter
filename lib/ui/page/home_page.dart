@@ -1,10 +1,15 @@
-import 'package:alert_world/features/auth/data/models/user_model.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:alert_world/features/auth/data/models/user_model.dart';
 import 'package:alert_world/bloc/alerts/alert_bloc.dart';
 import 'package:alert_world/bloc/alerts/alert_state.dart';
 import 'package:alert_world/bloc/alerts/alert_event.dart';
 import 'package:alert_world/ui/widgets/video_widget.dart';
+import 'package:alert_world/core/utils/auth_storage.dart';
 
 class HomePage extends StatefulWidget {
   final UserModel user;
@@ -16,79 +21,61 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-  final ScrollController _scrollController = ScrollController();
-
-  String _formatoRelativo(DateTime? fecha) {
-    if (fecha == null) return 'Fecha desconocida';
-
-    final ahora = DateTime.now();
-    final diferencia = ahora.difference(fecha);
-
-    if (diferencia.inSeconds < 60) return 'hace unos segundos';
-    if (diferencia.inMinutes < 60) return 'hace ${diferencia.inMinutes} ${diferencia.inMinutes == 1 ? 'minuto' : 'minutos'}';
-    if (diferencia.inHours < 24) return 'hace ${diferencia.inHours} ${diferencia.inHours == 1 ? 'hora' : 'horas'}';
-    if (diferencia.inDays == 1) return 'ayer';
-    if (diferencia.inDays < 7) return 'hace ${diferencia.inDays} días';
-    if (diferencia.inDays < 30) {
-      final semanas = (diferencia.inDays / 7).floor();
-      return 'hace $semanas ${semanas == 1 ? 'semana' : 'semanas'}';
-    }
-    if (diferencia.inDays < 365) {
-      final meses = (diferencia.inDays / 30).floor();
-      return 'hace $meses ${meses == 1 ? 'mes' : 'meses'}';
-    }
-
-    final anios = (diferencia.inDays / 365).floor();
-    if (anios >= 1 && anios < 5) {
-      return 'hace $anios ${anios == 1 ? 'año' : 'años'}';
-    }
-
-    final meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    return '${fecha.day} ${meses[fecha.month - 1]} ${fecha.year}';
-  }
+  late UserModel user;
 
   @override
   void initState() {
     super.initState();
+    user = widget.user;
+    // Carga inicial de alertas
     context.read<AlertBloc>().add(LoadAlerts());
   }
 
-  void _showProfileOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Mi perfil'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/profile', arguments: widget.user);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Cerrar sesión'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/login');
-              },
-            ),
-          ],
-        );
-      },
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.length >= 2) {
+      return parts[0][0].toUpperCase() + parts[1][0].toUpperCase();
+    } else if (parts.isNotEmpty) {
+      return parts[0][0].toUpperCase();
+    }
+    return "";
+  }
+
+  String fixLocalhost(String? url) =>
+      url?.replaceFirst('localhost', '10.0.2.2') ?? '';
+
+  Widget _buildMedia(String? mediaUrl) {
+    if (mediaUrl == null || mediaUrl.isEmpty) {
+      return Container(
+        height: 200,
+        color: Colors.grey.shade300,
+        child:
+            const Center(child: Icon(Icons.image_not_supported, size: 60)),
+      );
+    }
+    final lower = mediaUrl.toLowerCase();
+    if (lower.endsWith('.jpg') ||
+        lower.endsWith('.png') ||
+        lower.endsWith('.gif')) {
+      return Image.network(mediaUrl, fit: BoxFit.cover, height: 200);
+    } else if (lower.endsWith('.mp4')) {
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: BetterVideoWidget(videoUrl: mediaUrl),
+      );
+    }
+    return Container(
+      height: 200,
+      color: Colors.grey.shade300,
+      child: const Center(child: Icon(Icons.image_not_supported, size: 60)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = widget.user;
-    final hasAvatar = user.avatarUrl != null && user.avatarUrl!.isNotEmpty;
+    final fullAvatarUrl = widget.user.avatarUrl
+        ?.replaceFirst('localhost', '10.0.2.2');
+    final hasAvatar = (fullAvatarUrl ?? '').isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -96,9 +83,12 @@ class _HomePageState extends State<HomePage> {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            const CircleAvatar(radius: 15, backgroundImage: AssetImage('assets/logo.jpeg')),
+            const CircleAvatar(
+                radius: 15, backgroundImage: AssetImage('assets/logo.jpeg')),
             const SizedBox(width: 8),
-            const Text('Alert World', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text('Alert World',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 16)),
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.notifications_none, color: Colors.grey),
@@ -110,7 +100,10 @@ class _HomePageState extends State<HomePage> {
                 Navigator.pushNamed(
                   context,
                   '/report',
-                  arguments: {'userName': user.name, 'userId': user.id},
+                  arguments: {
+                    'userName': widget.user.name,
+                    'userId': widget.user.id
+                  },
                 );
               },
             ),
@@ -121,121 +114,138 @@ class _HomePageState extends State<HomePage> {
         builder: (context, state) {
           if (state is AlertLoading) {
             return const Center(child: CircularProgressIndicator());
-          } else if (state is AlertLoaded) {
-            if (state.alertas.isEmpty) {
-              return const Center(child: Text("No hay alertas disponibles."));
+          }
+          if (state is AlertLoaded) {
+            if (state.alerts.isEmpty) {
+              return const Center(child: Text("No hay alerts disponibles."));
             }
-
             return ListView.builder(
-              controller: _scrollController,
               padding: const EdgeInsets.all(12),
-              itemCount: state.alertas.length,
+              itemCount: state.alerts.length,
               itemBuilder: (context, index) {
-                final alerta = state.alertas[index];
-                final hasAvatar = alerta.usuarioAvatarUrl != null && alerta.usuarioAvatarUrl!.isNotEmpty;
-                final hasName = alerta.usuarioNombre != null && alerta.usuarioNombre!.isNotEmpty;
+                final alerta = state.alerts[index];
+                final avatarUrl = fixLocalhost(alerta.usuarioAvatarUrl);
 
                 return Card(
                   elevation: 6,
                   margin: const EdgeInsets.only(bottom: 20),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Encabezado con avatar y nombre
                       Padding(
-                        padding: const EdgeInsets.only(top: 12, left: 12, right: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         child: Row(
                           children: [
                             CircleAvatar(
                               radius: 12,
-                              backgroundImage: hasAvatar ? NetworkImage(alerta.usuarioAvatarUrl!) : null,
-                              child: (!hasAvatar && hasName)
+                              backgroundImage: avatarUrl.isNotEmpty
+                                  ? NetworkImage(avatarUrl)
+                                  : null,
+                              backgroundColor: avatarUrl.isEmpty
+                                  ? Colors.blueAccent
+                                  : null,
+                              child: avatarUrl.isEmpty
                                   ? Text(
-                                      alerta.usuarioNombre![0].toUpperCase(),
-                                      style: const TextStyle(fontSize: 12),
+                                      _getInitials(
+                                          alerta.usuarioNombre ?? ""),
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold),
                                     )
                                   : null,
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              alerta.usuarioNombre ?? "Anónimo",
-                              style: const TextStyle(color: Colors.grey),
-                            ),
+                            Text(alerta.usuarioNombre ?? "Anónimo",
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      if (alerta.imagenUrl != null && alerta.imagenUrl!.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(0)),
-                          child: Image.network(
-                            alerta.imagenUrl!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: 200,
-                          ),
-                        )
-                      else if (alerta.videoUrl != null && alerta.videoUrl!.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(0)),
-                          child: AspectRatio(
-                            aspectRatio: 16 / 9,
-                            child: VideoWidget(videoUrl: alerta.videoUrl!),
-                          ),
-                        )
-                      else
-                        Container(
-                          height: 200,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(0)),
-                          ),
-                          child: const Center(
-                            child: Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
-                          ),
-                        ),
+
+                      // Media (imagen/video)
+                      _buildMedia(alerta.mediaUrl),
+
+                      // Contenido
                       Padding(
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              alerta.titulo,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                            ),
+                            Text(alerta.titulo ?? 'Sin título',
+                                style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600)),
                             const SizedBox(height: 4),
-                            Text(
-                              _formatoRelativo(alerta.fecha),
-                              style: const TextStyle(color: Colors.grey, fontSize: 12),
-                            ),
+                            Text(_formatoRelativo(alerta.fecha),
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 12)),
                             const SizedBox(height: 8),
-                            Text(
-                              alerta.descripcion,
-                              style: const TextStyle(color: Colors.black87),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Icon(Icons.place, color: Colors.redAccent, size: 18),
-                                const SizedBox(width: 5),
-                                Text(
-                                  alerta.ubicacion ?? "Ubicación desconocida",
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                              ],
-                            ),
+                            Text(alerta.descripcion ?? '',
+                                style: const TextStyle(color: Colors.black87)),
                             const SizedBox(height: 10),
+
+                            // Fila de acciones: Like, Compartir, Comentarios
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
                               children: [
-                                IconButton(
-                                  onPressed: () {},
-                                  icon: const Icon(Icons.comment, size: 20, color: Colors.grey),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        alerta.likedByUser
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color: alerta.likedByUser
+                                            ? Colors.red
+                                            : Colors.grey,
+                                      ),
+                                      onPressed: () {
+                                        // Lanza el evento BLoC
+                                        context
+                                            .read<AlertBloc>()
+                                            .add(ToggleLikeEvent(
+                                                alertId: alerta.id, userId: user.id.toString()));
+                                      },
+                                    ),
+                                    Text('${alerta.likes}',
+                                        style:
+                                            const TextStyle(color: Colors.grey)),
+                                    const SizedBox(width: 8),
+                                    
+                                  ],
                                 ),
-                                Text(
-                                  '${alerta.comentarios?.length ?? 0}',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.comment,
+                                          size: 20, color: Colors.grey),
+                                      onPressed: () {
+                                        // Lógica de comentarios
+                                      },
+                                    ),
+                                    Text(
+                                        '${alerta.comentarios?.length ?? 0}',
+                                        style: const TextStyle(
+                                            color: Colors.grey)),
+                                            IconButton(
+                                      icon:
+                                          const Icon(Icons.share, size: 20),
+                                      onPressed: () {
+                                        Share.share(
+                                          '🚨 Alerta: ${alerta.titulo}\n\n${alerta.descripcion}',
+                                          subject:
+                                              'Nueva alerta en Alert World',
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                )
                               ],
                             ),
                           ],
@@ -246,11 +256,11 @@ class _HomePageState extends State<HomePage> {
                 );
               },
             );
-          } else if (state is AlertError) {
-            return Center(child: Text("Error: ${state.mensaje}"));
-          } else {
-            return const Center(child: Text("No hay alertas disponibles."));
           }
+          if (state is AlertFailure) {
+            return Center(child: Text("Error: ${state.message}"));
+          }
+          return const Center(child: Text("No hay alerts disponibles."));
         },
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -260,11 +270,25 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _selectedIndex,
         onTap: (index) {
           if (index == 2) {
-            _showProfileOptions(context); // ahora está conectada aquí
-          } else {
-            setState(() {
-              _selectedIndex = index;
+            final profileAlerts = <Map<String, dynamic>>[];
+            final state = context.read<AlertBloc>().state;
+            if (state is AlertLoaded) {
+              for (var a in state.alerts) {
+                if (a.usuarioId == user.id) {
+                  profileAlerts.add({
+                    'mediaUrl': a.mediaUrl ?? '',
+                    'titulo': a.titulo ?? '',
+                    'esVideo': (a.mediaUrl ?? '').toLowerCase().endsWith('.mp4'),
+                  });
+                }
+              }
+            }
+            Navigator.pushNamed(context, '/profile', arguments: {
+              'user': user,
+              'alerts': profileAlerts,
             });
+          } else {
+            setState(() => _selectedIndex = index);
           }
         },
         items: [
@@ -273,12 +297,16 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(
             icon: CircleAvatar(
               radius: 14,
-              backgroundImage: hasAvatar ? NetworkImage(user.avatarUrl!) : null,
+              backgroundImage:
+                  hasAvatar ? NetworkImage(fullAvatarUrl!) : null,
+              backgroundColor:
+                  hasAvatar ? Colors.transparent : Colors.blueAccent,
               child: !hasAvatar
-                  ? Text(
-                      user.name[0].toUpperCase(),
-                      style: const TextStyle(fontSize: 12),
-                    )
+                  ? Text(_getInitials(widget.user.name),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12))
                   : null,
             ),
             label: "",
@@ -286,5 +314,18 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  String _formatoRelativo(DateTime? fecha) {
+    if (fecha == null) return 'Fecha desconocida';
+    final diff = DateTime.now().difference(fecha);
+    if (diff.inSeconds < 60) return 'hace unos segundos';
+    if (diff.inMinutes < 60) return 'hace ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'hace ${diff.inHours} h';
+    if (diff.inDays == 1) return 'ayer';
+    if (diff.inDays < 7) return 'hace ${diff.inDays} días';
+    if (diff.inDays < 30) return 'hace ${(diff.inDays / 7).floor()} sem.';
+    if (diff.inDays < 365) return 'hace ${(diff.inDays / 30).floor()} mes.';
+    return '${fecha.day}/${fecha.month}/${fecha.year}';
   }
 }

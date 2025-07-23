@@ -1,8 +1,10 @@
+import 'package:alert_world/features/alerts/data/repositories/alert_repository_impl.dart';
+import 'package:alert_world/features/alerts/domain/repositories/alert_repository.dart';
 import 'package:alert_world/ui/page/map_selector_page.dart';
-import 'package:alert_world/ui/page/panic_page.dart';
 import 'package:alert_world/ui/page/alert_list_page.dart';
 import 'package:alert_world/ui/page/alert_map_page.dart';
 import 'package:alert_world/ui/page/profile_page.dart';
+import 'package:alert_world/ui/page/profile_update_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'injection_container.dart' as di;
@@ -17,7 +19,15 @@ import 'package:alert_world/features/auth/data/models/user_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Captura errores globales no atrapados
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+  };
+
+
+  // Inicializa el contenedor de inyección (registra dependencias)
   await di.init();
+
   runApp(const MyApp());
 }
 
@@ -35,10 +45,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
         BlocProvider<AlertBloc>(
-          create: (_) => di.sl()..add(LoadAlerts()),
+          // Obtiene la instancia del AlertBloc inyectado con el repositorio ya dentro
+          create: (_) => di.sl<AlertBloc>()..add(LoadAlerts()),
         ),
       ],
       child: MaterialApp(
+
         title: 'Alert World',
         debugShowCheckedModeBanner: false,
         initialRoute: '/login',
@@ -47,6 +59,7 @@ class MyApp extends StatelessWidget {
           '/register': (_) => RegisterPage(),
           '/alert_list': (_) => const AlertList(),
           '/alert_map': (_) => const AlertMapPage(),
+
           '/map_selector': (_) => const MapSelectorPage(),
         },
         onGenerateRoute: (settings) {
@@ -56,9 +69,7 @@ class MyApp extends StatelessWidget {
               return _errorRoute('Faltan argumentos para la ruta /home');
             }
             final UserModel user = args['user'] as UserModel;
-            return MaterialPageRoute(
-              builder: (_) => HomePage(user: user),
-            );
+            return MaterialPageRoute(builder: (_) => HomePage(user: user));
           }
 
           if (settings.name == '/report') {
@@ -75,19 +86,30 @@ class MyApp extends StatelessWidget {
           }
 
           if (settings.name == '/profile') {
-            final args = settings.arguments;
-            if (args == null || args is! UserModel) {
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args == null || !args.containsKey('user') || !args.containsKey('alerts')) {
               return _errorRoute('Faltan argumentos para la ruta /profile');
             }
-            final UserModel user = args;
+            final user = args['user'] as UserModel;
+            final alerts = args['alerts'] as List<Map<String, dynamic>>;
             return MaterialPageRoute(
-              builder: (_) => UserProfilePage(user: user),
+              builder: (_) => UserProfilePage(
+                user: user,
+                alerts: alerts,
+              ),
             );
           }
 
-          // if (settings.name == '/panic') {
-          //   return MaterialPageRoute(builder: (_) => const PanicPage());
-          // }
+          if (settings.name == '/user_update') {
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args == null || !args.containsKey('user')) {
+              return _errorRoute('Faltan argumentos para la ruta /user_update');
+            }
+            final user = args['user'] as UserModel;
+            return MaterialPageRoute(
+              builder: (_) => UserProfileUpdatePage(user: user),
+            );
+          }
 
           return _errorRoute('Ruta no encontrada: ${settings.name}');
         },
@@ -96,6 +118,7 @@ class MyApp extends StatelessWidget {
   }
 
   Route _errorRoute(String mensaje) {
+
     return MaterialPageRoute(
       builder: (_) => Scaffold(
         appBar: AppBar(title: const Text('Error')),

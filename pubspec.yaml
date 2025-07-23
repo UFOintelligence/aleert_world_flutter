@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: '>=3.8.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -16,10 +16,14 @@ dependencies:
   http: ^1.1.0
   get_it: ^8.0.3
   dartz: ^0.10.1
+  dio: ^5.3.3
   flutter_animate: ^4.5.2
   google_fonts: ^6.2.1
   google_maps_flutter: ^2.5.0
-  google_maps_flutter_web: ^0.5.12+2
+  share_plus: ^11.0.0
+  flutter_secure_storage: ^9.2.4
+
+
   flutter_svg: ^2.2.0
   audioplayers: ^6.5.0
   geolocator: ^14.0.1
@@ -28,18 +32,20 @@ dependencies:
   flutter_local_notifications: ^17.0.0
   fluttertoast: ^8.2.4
   flutter_sound: ^9.2.13
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^6.0.0
-  video_player: ^2.10.0
+  chewie: ^1.12.1
   image_picker: ^1.1.2
   mime: ^2.0.0
   path: ^1.9.1
   http_parser: ^4.0.2
   speech_to_text: ^7.1.0
-  flutter_tts: ^4.2.3
   intl: ^0.20.2
+  better_player_enhanced: ^0.0.5
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  video_thumbnail: ^0.5.3
+  video_player: ^2.8.2
 
 flutter:
   uses-material-design: true
