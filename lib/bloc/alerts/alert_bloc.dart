@@ -37,6 +37,7 @@ Future<void> _onToggleLike(
   ToggleLikeEvent event,
   Emitter<AlertState> emit,
 ) async {
+      print('ToggleLikeEvent recibido para alerta ID: ${event.alertId}');
   if (state is AlertLoaded) {
     final currentState = state as AlertLoaded;
     final alerts = List<AlertEntity>.from(currentState.alerts);
@@ -56,6 +57,7 @@ Future<void> _onToggleLike(
       final result = await toggleLikeUseCase(
         alertId: event.alertId,
         userId: event.userId,
+        token: event.token,
       );
 
       result.fold(

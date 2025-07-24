@@ -11,7 +11,8 @@ class ToggleLike {
   Future<Either<core.Failure, AlertEntity>> call({
     required int alertId,
     required String userId,
+    required String token, 
   }) async {
-    return await repository.toggleLike(alertId: alertId, userId: userId);
+    return await repository.toggleLike(alertId: alertId, userId: userId, token: token );
   }
 }

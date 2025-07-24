@@ -36,6 +36,9 @@ class _LoginPageState extends State<LoginPage> {
 
           if (state is AuthSuccess) {
             final user = state.user;
+            final token = state.user.token;
+
+
 
             if (user.rol != 'usuario') {
               showDialog(
@@ -55,7 +58,7 @@ class _LoginPageState extends State<LoginPage> {
                WidgetsBinding.instance.addPostFrameCallback((_) {
   Navigator.pushReplacement(
     context,
-    MaterialPageRoute(builder: (_) => HomePage(user: user)),
+    MaterialPageRoute(builder: (_) => HomePage(user: user, token: token)),
   );
 });
               // Mostrar mensaje y redirigir fuera del listener

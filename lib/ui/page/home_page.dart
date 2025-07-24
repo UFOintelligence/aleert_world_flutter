@@ -13,7 +13,8 @@ import 'package:alert_world/core/utils/auth_storage.dart';
 
 class HomePage extends StatefulWidget {
   final UserModel user;
-  const HomePage({Key? key, required this.user}) : super(key: key);
+  final String token;
+  const HomePage({Key? key, required this.user, required this.token}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -168,7 +169,13 @@ class _HomePageState extends State<HomePage> {
                       ),
 
                       // Media (imagen/video)
-                      _buildMedia(alerta.mediaUrl),
+                      // Imagen o video con detección automática
+if (alerta.mediaUrl != null)
+  SizedBox(
+    width: double.infinity,
+    height: 200,
+    child: _buildMedia(fixLocalhost(alerta.mediaUrl)),
+  ),
 
                       // Contenido
                       Padding(
@@ -210,7 +217,7 @@ class _HomePageState extends State<HomePage> {
                                         context
                                             .read<AlertBloc>()
                                             .add(ToggleLikeEvent(
-                                                alertId: alerta.id, userId: user.id.toString()));
+                                                alertId: alerta.id, token: widget.token, userId: user.id.toString()));
                                       },
                                     ),
                                     Text('${alerta.likes}',

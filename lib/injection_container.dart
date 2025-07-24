@@ -1,6 +1,5 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
-import 'package:dio/dio.dart';
 
 // AUTH
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
@@ -20,46 +19,37 @@ import 'package:alert_world/features/alerts/data/repositories/alert_repository_i
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  // CLIENTES HTTP
+  // CLIENTE HTTP
   sl.registerLazySingleton(() => http.Client());
-  sl.registerLazySingleton<Dio>(() => Dio());
 
   // AUTH
   sl.registerLazySingleton<AuthRemoteDataSource>(() => AuthRemoteDataSourceImpl(
-    client: sl(),
-    baseUrl: 'http://10.0.2.2:8000/api',
-  ));
+        client: sl(),
+        baseUrl: 'http://10.0.2.2:8000/api',
+      ));
 
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(remoteDataSource: sl())
-  );
+      () => AuthRepositoryImpl(remoteDataSource: sl()));
 
   sl.registerLazySingleton(() => LoginUser(sl()));
   sl.registerLazySingleton(() => RegisterUser(sl()));
 
   // ALERTAS
   sl.registerLazySingleton<AlertRemoteDataSource>(() => AlertRemoteDataSourceImpl(
-    client: sl(),
-    baseUrl: 'http://10.0.2.2:8000/api',
-  ));
+        client: sl(),
+        baseUrl: 'http://10.0.2.2:8000/api',
+      ));
 
- sl.registerLazySingleton<AlertRepository>(
-  () => AlertRepositoryImpl(
-    dio: sl<Dio>(),
-    remoteDataSource: sl<AlertRemoteDataSource>(), 
-  ),
-);
+  sl.registerLazySingleton<AlertRepository>(() => AlertRepositoryImpl(
+        remoteDataSource: sl<AlertRemoteDataSource>(),
+      ));
 
-  sl.registerLazySingleton<GetAlertas>(
-    () => GetAlertas(sl<AlertRepository>())
-  );
+  sl.registerLazySingleton<GetAlertas>(() => GetAlertas(sl<AlertRepository>()));
 
-  sl.registerLazySingleton<ToggleLike>(
-    () => ToggleLike(sl<AlertRepository>())
-  );
+  sl.registerLazySingleton<ToggleLike>(() => ToggleLike(sl<AlertRepository>()));
 
   sl.registerFactory(() => AlertBloc(
-    getAlertasUseCase: sl<GetAlertas>(),
-    toggleLikeUseCase: sl<ToggleLike>(),
-  ));
+        getAlertasUseCase: sl<GetAlertas>(),
+        toggleLikeUseCase: sl<ToggleLike>(),
+      ));
 }

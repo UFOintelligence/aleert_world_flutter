@@ -44,7 +44,8 @@ class AlertModel extends AlertEntity {
           .toList(),
       usuarioNombre: json['usuario_nombre'],
       usuarioAvatarUrl: json['usuario_avatar'],
-      fecha: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      fecha: DateTime.tryParse(json['fecha'] ?? '') ?? DateTime.now(),
+
       likedByUser: json['likedByUser'] ?? false,
       likes: json['likes'] ?? 0,
     );

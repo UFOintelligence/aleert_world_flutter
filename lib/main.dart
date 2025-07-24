@@ -57,20 +57,22 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (_) => LoginPage(),
           '/register': (_) => RegisterPage(),
-          '/alert_list': (_) => const AlertList(),
+          //'/alert_list': (_) => const AlertList(),
           '/alert_map': (_) => const AlertMapPage(),
 
           '/map_selector': (_) => const MapSelectorPage(),
         },
         onGenerateRoute: (settings) {
-          if (settings.name == '/home') {
-            final args = settings.arguments as Map?;
-            if (args == null || !args.containsKey('user')) {
-              return _errorRoute('Faltan argumentos para la ruta /home');
-            }
-            final UserModel user = args['user'] as UserModel;
-            return MaterialPageRoute(builder: (_) => HomePage(user: user));
-          }
+         if (settings.name == '/home') {
+  final args = settings.arguments as Map?;
+  if (args == null || !args.containsKey('user') || !args.containsKey('token')) {
+    return _errorRoute('Faltan argumentos para la ruta /home');
+  }
+  final UserModel user = args['user'] as UserModel;
+  final token = args['token'] as String;
+
+  return MaterialPageRoute(builder: (_) => HomePage(user: user, token: token));
+}
 
           if (settings.name == '/report') {
             final args = settings.arguments as Map<String, dynamic>?;
@@ -126,6 +128,7 @@ class MyApp extends StatelessWidget {
           child: Text(mensaje, style: const TextStyle(fontSize: 18)),
         ),
       ),
+
     );
   }
 }

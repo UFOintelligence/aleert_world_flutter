@@ -11,13 +11,15 @@ class AlertLoaded extends AlertState {
 
   AlertLoaded(this.alerts);
 
-  AlertLoaded copyWith({
-    List<AlertEntity>? alerts,
-  }) {
-    return AlertLoaded(
-      alerts ?? this.alerts,
-    );
+  AlertLoaded copyWith({List<AlertEntity>? alerts}) {
+    return AlertLoaded(alerts ?? this.alerts);
   }
+}
+
+class AlertError extends AlertState {
+  final String message;
+
+  AlertError(this.message);
 }
 
 class AlertFailure extends AlertState {
@@ -26,13 +28,9 @@ class AlertFailure extends AlertState {
   AlertFailure(this.message);
 }
 
+// Estado opcional si quieres usar para UI separada
 class AlertLikeUpdated extends AlertState {
   final List<AlertEntity> alerts;
 
   AlertLikeUpdated(this.alerts);
-}
-class AlertError extends AlertState {
-  final String message;
-
-  AlertError(this.message);
 }
