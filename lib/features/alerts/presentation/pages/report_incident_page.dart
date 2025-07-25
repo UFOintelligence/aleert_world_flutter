@@ -1,13 +1,16 @@
 import 'dart:io';
+import 'package:alert_world/ui/page/map_selector_page.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as p;
-import 'package:mime/mime.dart';
-import 'package:http_parser/http_parser.dart';
 import 'package:video_player/video_player.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+import 'package:alert_world/bloc/alerts/alert_bloc.dart';
+import 'package:alert_world/bloc/alerts/alert_event.dart';
+import 'package:alert_world/bloc/alerts/alert_state.dart';
+import 'package:alert_world/features/alerts/domain/entities/alert_entity.dart';
 
 class ReportIncidentPage extends StatefulWidget {
   final String userName;
@@ -34,9 +37,12 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
   final ImagePicker _picker = ImagePicker();
   VideoPlayerController? _videoController;
   Position? _position;
+  bool _usarUbicacionActual = true;
 
   final List<String> _tiposAlerta = ['Robo', 'Incendio', 'Accidente', 'Violencia', 'Otro'];
   String _tipoSeleccionado = 'Robo';
+
+  LatLng? _ubicacionManual;
 
   @override
   void initState() {
@@ -44,16 +50,20 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
     _getCurrentLocation();
   }
 
+  @override
+  void dispose() {
+    _descripcionController.dispose();
+    _otroTipoController.dispose();
+    _scrollController.dispose();
+    _videoController?.dispose();
+    super.dispose();
+  }
+
   Future<void> _getCurrentLocation() async {
     LocationPermission permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied) return;
-
     final pos = await Geolocator.getCurrentPosition();
-    if (mounted) {
-      setState(() {
-        _position = pos;
-      });
-    }
+    if (mounted) setState(() => _position = pos);
   }
 
   Future<void> _pickMedia({required bool isVideo, required ImageSource source}) async {
@@ -80,264 +90,241 @@ class _ReportIncidentPageState extends State<ReportIncidentPage> {
     }
   }
 
-  Future<void> _submitAlert() async {
+  void _submitAlert() {
     if (!_formKey.currentState!.validate()) return;
-    if (_position == null) {
-      if (mounted) {
+
+    double? lat;
+    double? lon;
+
+    if (_usarUbicacionActual) {
+      if (_position == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Esperando ubicación GPS...")),
         );
+        return;
       }
-      return;
-    }
-
-    final uri = Uri.parse("http://10.0.2.2:8000/api/auth/alertas");
-    final request = http.MultipartRequest('POST', uri);
-
-    request.fields['user_id'] = widget.userId.toString();
-    request.fields['titulo'] = _tipoSeleccionado;
-    request.fields['tipo_alerta'] =
-        _tipoSeleccionado == 'Otro' ? _otroTipoController.text : _tipoSeleccionado.toLowerCase();
-    request.fields['descripcion'] = _descripcionController.text;
-    request.fields['latitud'] = _position!.latitude.toString();
-    request.fields['longitud'] = _position!.longitude.toString();
-
-    if (_mediaFile != null && _mediaType != null) {
-      final mimeTypeData = lookupMimeType(_mediaFile!.path)?.split('/') ?? ['application', 'octet-stream'];
-      request.files.add(await http.MultipartFile.fromPath(
-        'archivo',
-        _mediaFile!.path,
-        contentType: MediaType(mimeTypeData[0], mimeTypeData[1]),
-      ));
-    }
-
-    final response = await request.send();
-    final responseBody = await response.stream.bytesToString();
-
-    if (mounted) {
-      if (response.statusCode == 201) {
+      lat = _position!.latitude;
+      lon = _position!.longitude;
+    } else {
+      if (_ubicacionManual == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Alerta creada exitosamente")),
+          const SnackBar(content: Text("Debe seleccionar una ubicación en el mapa")),
         );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Error al crear la alerta: $responseBody")),
-        );
+        return;
       }
+      lat = _ubicacionManual!.latitude;
+      lon = _ubicacionManual!.longitude;
     }
-  }
 
-  @override
-  void dispose() {
-    _descripcionController.dispose();
-    _otroTipoController.dispose();
-    _videoController?.dispose();
-    _scrollController.dispose();
-    super.dispose();
+    final tipoAlerta = _tipoSeleccionado == 'Otro'
+        ? _otroTipoController.text
+        : _tipoSeleccionado.toLowerCase();
+
+    final ubicacionStr = "Lat: $lat, Lon: $lon";
+
+    final alert = AlertEntity(
+      id: 0,
+      usuarioId: widget.userId,
+      titulo: tipoAlerta,
+      descripcion: _descripcionController.text,
+      ubicacion: ubicacionStr,
+      mediaUrl: null,
+      comentarios: null,
+      usuarioNombre: widget.userName,
+      usuarioAvatarUrl: null,
+      fecha: DateTime.now(),
+      likes: 0,
+      likedByUser: false,
+      tipoAlerta: tipoAlerta,
+      latitud: lat,
+      longitud: lon,
+      archivoPath: _mediaFile?.path,
+    );
+
+    context.read<AlertBloc>().add(SubmitAlertEvent(alert));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("🚨 Reportar alerta")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            controller: _scrollController,
-            children: [
-              const Text("📄 Información de la alerta", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
+      appBar: AppBar(title: const Text("🚨 Crear alerta")),
+      body: SafeArea(
+        child: BlocConsumer<AlertBloc, AlertState>(
+          listener: (context, state) {
+            if (state is AlertSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("✅ Alerta creada exitosamente")),
+              );
+              Navigator.pop(context);
+            } else if (state is AlertError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("❌ ${state.message}")),
+              );
+            }
+          },
+          builder: (context, state) {
+            return AbsorbPointer(
+              absorbing: state is AlertSubmitting,
+              child: Opacity(
+                opacity: state is AlertSubmitting ? 0.6 : 1,
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "📄 Información de la alerta",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 12),
 
-              DropdownButtonFormField<String>(
-                value: _tipoSeleccionado,
-                decoration: const InputDecoration(
-                  labelText: "Tipo de alerta",
-                  prefixIcon: Icon(Icons.warning),
-                  border: OutlineInputBorder(),
-                ),
-                items: _tiposAlerta.map((tipo) {
-                  return DropdownMenuItem<String>(value: tipo, child: Text(tipo));
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _tipoSeleccionado = value);
-                  }
-                },
-              ),
+                        DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            labelText: "Tipo de alerta",
+                            border: OutlineInputBorder(),
+                          ),
+                          value: _tipoSeleccionado,
+                          items: _tiposAlerta
+                              .map((tipo) => DropdownMenuItem(
+                                    value: tipo,
+                                    child: Text(tipo),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _tipoSeleccionado = value);
+                            }
+                          },
+                        ),
 
-              const SizedBox(height: 12),
+                        if (_tipoSeleccionado == 'Otro')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: TextFormField(
+                              controller: _otroTipoController,
+                              decoration: const InputDecoration(
+                                labelText: 'Especifique el tipo',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Por favor especifique el tipo de alerta';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
 
-              if (_tipoSeleccionado == 'Otro')
-                TextFormField(
-                  controller: _otroTipoController,
-                  decoration: const InputDecoration(
-                    labelText: "Especificar otro tipo",
-                    prefixIcon: Icon(Icons.edit),
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (_tipoSeleccionado == 'Otro' && (value == null || value.isEmpty)) {
-                      return "Especifica el tipo de alerta";
-                    }
-                    return null;
-                  },
-                ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _descripcionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Descripción',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 4,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor ingrese una descripción';
+                            }
+                            return null;
+                          },
+                        ),
 
-              const SizedBox(height: 12),
+                        const SizedBox(height: 12),
+                        SwitchListTile(
+                          value: _usarUbicacionActual,
+                          onChanged: (val) => setState(() {
+                            _usarUbicacionActual = val;
+                            if (val) _ubicacionManual = null;
+                          }),
+                          title: const Text("📍 Usar ubicación actual"),
+                        ),
 
-              TextFormField(
-                controller: _descripcionController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: "Descripción",
-                  prefixIcon: Icon(Icons.description),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.isEmpty ? "Campo requerido" : null,
-              ),
+                        if (!_usarUbicacionActual)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.map),
+                              label: Text(_ubicacionManual != null
+                                  ? "Ubicación seleccionada"
+                                  : "Seleccionar ubicación en el mapa"),
+                              onPressed: () async {
+                                final selected = await Navigator.push<LatLng>(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const MapSelectorPage()),
+                                );
+                                if (selected != null) {
+                                  setState(() => _ubicacionManual = selected);
+                                }
+                              },
+                            ),
+                          ),
 
-              const SizedBox(height: 16),
-              const Text("📍 Ubicación", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Adjuntar media (imagen o video)',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
 
-              if (_position != null) ...[
-                TextFormField(
-                  initialValue: _position!.latitude.toString(),
-                  decoration: const InputDecoration(
-                    labelText: "Latitud",
-                    prefixIcon: Icon(Icons.map),
-                    border: OutlineInputBorder(),
-                  ),
-                  enabled: false,
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  initialValue: _position!.longitude.toString(),
-                  decoration: const InputDecoration(
-                    labelText: "Longitud",
-                    prefixIcon: Icon(Icons.map_outlined),
-                    border: OutlineInputBorder(),
-                  ),
-                  enabled: false,
-                ),
-                TextButton.icon(
-                  onPressed: () async {
-                    final result = await Navigator.pushNamed(context, '/map_selector');
+                        if (_mediaFile != null)
+                          _mediaType == 'image'
+                              ? Image.file(_mediaFile!, height: 200, fit: BoxFit.cover)
+                              : (_videoController != null && _videoController!.value.isInitialized)
+                                  ? AspectRatio(
+                                      aspectRatio: _videoController!.value.aspectRatio,
+                                      child: VideoPlayer(_videoController!),
+                                    )
+                                  : Container(),
 
-                    if (result != null && result is LatLng) {
-                      setState(() {
-                        _position = Position(
-                          latitude: result.latitude,
-                          longitude: result.longitude,
-                          timestamp: DateTime.now(),
-                          accuracy: 1.0,
-                          altitude: 0.0,
-                          heading: 0.0,
-                          speed: 0.0,
-                          speedAccuracy: 1.0,
-                          altitudeAccuracy: 1.0,
-                          headingAccuracy: 1.0,
-                        );
-                      });
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            TextButton.icon(
+                              icon: const Icon(Icons.photo),
+                              label: const Text('Foto'),
+                              onPressed: () => _pickMedia(isVideo: false, source: ImageSource.gallery),
+                            ),
+                            TextButton.icon(
+                              icon: const Icon(Icons.videocam),
+                              label: const Text('Video'),
+                              onPressed: () => _pickMedia(isVideo: true, source: ImageSource.gallery),
+                            ),
+                            TextButton.icon(
+                              icon: const Icon(Icons.camera_alt),
+                              label: const Text('Cámara'),
+                              onPressed: () => _pickMedia(isVideo: false, source: ImageSource.camera),
+                            ),
+                            TextButton.icon(
+                              icon: const Icon(Icons.videocam_outlined),
+                              label: const Text('Grabar video'),
+                              onPressed: () => _pickMedia(isVideo: true, source: ImageSource.camera),
+                            ),
+                          ],
+                        ),
 
-                      // Scroll automático al mapa
-                      await Future.delayed(const Duration(milliseconds: 300));
-                      _scrollController.animateTo(
-                        _scrollController.position.maxScrollExtent,
-                        duration: const Duration(milliseconds: 500),
-                        curve: Curves.easeInOut,
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.edit_location_alt),
-                  label: const Text("Elegir otra ubicación"),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 200,
-                  child: GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: LatLng(_position!.latitude, _position!.longitude),
-                      zoom: 16,
+                        const SizedBox(height: 24),
+                        FilledButton.icon(
+                          icon: const Icon(Icons.send),
+                          label: const Text("Enviar alerta"),
+                          onPressed: _submitAlert,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                          ),
+                        ),
+                      ],
                     ),
-                    markers: {
-                      Marker(
-                        markerId: const MarkerId('current'),
-                        position: LatLng(_position!.latitude, _position!.longitude),
-                      )
-                    },
-                    zoomControlsEnabled: false,
-                    myLocationEnabled: false,
-                    liteModeEnabled: true,
-                  ),
-                ),
-              ] else
-                const Center(child: CircularProgressIndicator()),
-
-              const SizedBox(height: 24),
-              const Text("🎥 Adjuntar multimedia", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    alignment: WrapAlignment.spaceEvenly,
-                    children: [
-                      FilledButton.icon(
-                        icon: const Icon(Icons.image),
-                        label: const Text("Galería"),
-                        onPressed: () => _pickMedia(isVideo: false, source: ImageSource.gallery),
-                      ),
-                      FilledButton.icon(
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text("Cámara"),
-                        onPressed: () => _pickMedia(isVideo: false, source: ImageSource.camera),
-                      ),
-                      FilledButton.icon(
-                        icon: const Icon(Icons.video_library),
-                        label: const Text("Video galería"),
-                        onPressed: () => _pickMedia(isVideo: true, source: ImageSource.gallery),
-                      ),
-                      FilledButton.icon(
-                        icon: const Icon(Icons.videocam),
-                        label: const Text("Video cámara"),
-                        onPressed: () => _pickMedia(isVideo: true, source: ImageSource.camera),
-                      ),
-                    ],
                   ),
                 ),
               ),
-
-              if (_mediaFile != null && _mediaType == 'image')
-                Image.file(_mediaFile!, height: 200, fit: BoxFit.cover),
-
-              if (_mediaFile != null &&
-                  _mediaType == 'video' &&
-                  _videoController != null &&
-                  _videoController!.value.isInitialized)
-                AspectRatio(
-                  aspectRatio: _videoController!.value.aspectRatio,
-                  child: VideoPlayer(_videoController!),
-                ),
-
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                icon: const Icon(Icons.send),
-                label: const Text("Enviar alerta"),
-                onPressed: _submitAlert,
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

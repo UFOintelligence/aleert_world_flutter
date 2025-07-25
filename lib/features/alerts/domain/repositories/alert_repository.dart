@@ -4,6 +4,7 @@ import 'package:alert_world/core/error/failures.dart';
 
 abstract class AlertRepository {
   Future<Either<Failure, List<AlertEntity>>> getAlertas();
+    Future<Either<Failure, Unit>> createAlert(AlertEntity alert);
 
   Future<Either<Failure, AlertEntity>> toggleLike({
     required int alertId,

@@ -36,4 +36,24 @@ class AlertRepositoryImpl implements AlertRepository {
       return Left(Failure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, Unit>> createAlert(AlertEntity alert) async {
+    
+    try {
+      await remoteDataSource.createAlertRemote({
+        'user_id': alert.usuarioId,
+        'titulo': alert.titulo,
+        'tipo_alerta': alert.tipoAlerta,
+        'descripcion': alert.descripcion,
+        'latitud': alert.latitud.toString(),
+        'longitud': alert.longitud.toString(),
+        'archivoPath': alert.archivoPath,
+        'token': alert.token, 
+      });
+      return Right(unit);
+    } catch (e) {
+      return Left(Failure(e.toString()));
+    }
+  }
 }

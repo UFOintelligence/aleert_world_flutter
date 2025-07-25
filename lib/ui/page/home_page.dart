@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:alert_world/features/alerts/domain/usecases/create_alert.dart';
 import 'package:alert_world/features/auth/data/models/user_model.dart';
 import 'package:alert_world/bloc/alerts/alert_bloc.dart';
 import 'package:alert_world/bloc/alerts/alert_state.dart';
@@ -127,144 +127,160 @@ class _HomePageState extends State<HomePage> {
                 final alerta = state.alerts[index];
                 final avatarUrl = fixLocalhost(alerta.usuarioAvatarUrl);
 
-                return Card(
-                  elevation: 6,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Encabezado con avatar y nombre
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 12,
-                              backgroundImage: avatarUrl.isNotEmpty
-                                  ? NetworkImage(avatarUrl)
-                                  : null,
-                              backgroundColor: avatarUrl.isEmpty
-                                  ? Colors.blueAccent
-                                  : null,
-                              child: avatarUrl.isEmpty
-                                  ? Text(
-                                      _getInitials(
-                                          alerta.usuarioNombre ?? ""),
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold),
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(alerta.usuarioNombre ?? "Anónimo",
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-
-                      // Media (imagen/video)
-                      // Imagen o video con detección automática
-if (alerta.mediaUrl != null)
-  SizedBox(
-    width: double.infinity,
-    height: 200,
-    child: _buildMedia(fixLocalhost(alerta.mediaUrl)),
+               return Card(
+  elevation: 6,
+  margin: const EdgeInsets.only(bottom: 20),
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(16),
   ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // Encabezado con avatar y nombre
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 12,
+              backgroundImage: avatarUrl.isNotEmpty
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              backgroundColor:
+                  avatarUrl.isEmpty ? Colors.blueAccent : null,
+              child: avatarUrl.isEmpty
+                  ? Text(
+                      _getInitials(alerta.usuarioNombre ?? ""),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 6),
+            Text(alerta.usuarioNombre ?? "Anónimo",
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
 
-                      // Contenido
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(alerta.titulo ?? 'Sin título',
-                                style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 4),
-                            Text(_formatoRelativo(alerta.fecha),
-                                style: const TextStyle(
-                                    color: Colors.grey, fontSize: 12)),
-                            const SizedBox(height: 8),
-                            Text(alerta.descripcion ?? '',
-                                style: const TextStyle(color: Colors.black87)),
-                            const SizedBox(height: 10),
+      // Media (imagen/video)
+      if (alerta.mediaUrl != null)
+        SizedBox(
+          width: double.infinity,
+          height: 200,
+          child: _buildMedia(fixLocalhost(alerta.mediaUrl)),
+        ),
 
-                            // Fila de acciones: Like, Compartir, Comentarios
-                            Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(
-                                        alerta.likedByUser
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        color: alerta.likedByUser
-                                            ? Colors.red
-                                            : Colors.grey,
-                                      ),
-                                      onPressed: () {
-                                        // Lanza el evento BLoC
-                                        context
-                                            .read<AlertBloc>()
-                                            .add(ToggleLikeEvent(
-                                                alertId: alerta.id, token: widget.token, userId: user.id.toString()));
-                                      },
-                                    ),
-                                    Text('${alerta.likes}',
-                                        style:
-                                            const TextStyle(color: Colors.grey)),
-                                    const SizedBox(width: 8),
-                                    
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.comment,
-                                          size: 20, color: Colors.grey),
-                                      onPressed: () {
-                                        // Lógica de comentarios
-                                      },
-                                    ),
-                                    Text(
-                                        '${alerta.comentarios?.length ?? 0}',
-                                        style: const TextStyle(
-                                            color: Colors.grey)),
-                                            IconButton(
-                                      icon:
-                                          const Icon(Icons.share, size: 20),
-                                      onPressed: () {
-                                        Share.share(
-                                          '🚨 Alerta: ${alerta.titulo}\n\n${alerta.descripcion}',
-                                          subject:
-                                              'Nueva alerta en Alert World',
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                )
-                              ],
-                            ),
-                          ],
-                        ),
+      // Contenido
+      Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(alerta.titulo ?? 'Sin título',
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(_formatoRelativo(alerta.fecha),
+                style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            const SizedBox(height: 8),
+            Text(alerta.descripcion ?? '',
+                style: const TextStyle(color: Colors.black87)),
+
+            // Ubicación
+            if (alerta.ubicacion != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Row(
+                    children: const [
+                      Icon(Icons.location_on,
+                          size: 16, color: Colors.redAccent),
+                      SizedBox(width: 4),
+                      Text(
+                        'Ubicación:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black54),
                       ),
                     ],
                   ),
-                );
+                  Text(alerta.ubicacion!,
+                      style: const TextStyle(color: Colors.black87)),
+                ],
+              ),
+
+            const SizedBox(height: 10),
+
+            // Fila de acciones: Like, Compartir, Comentarios
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        alerta.likedByUser
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: alerta.likedByUser
+                            ? Colors.red
+                            : Colors.grey,
+                      ),
+                      onPressed: () {
+                        context.read<AlertBloc>().add(
+                              ToggleLikeEvent(
+                                alertId: alerta.id,
+                                token: widget.token,
+                                userId: user.id.toString(),
+                              ),
+                            );
+                      },
+                    ),
+                    Text('${alerta.likes}',
+                        style: const TextStyle(color: Colors.grey)),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.comment,
+                          size: 20, color: Colors.grey),
+                      onPressed: () {
+                        // Lógica de comentarios
+                      },
+                    ),
+                    Text('${alerta.comentarios?.length ?? 0}',
+                        style: const TextStyle(color: Colors.grey)),
+                    IconButton(
+                      icon: const Icon(Icons.share, size: 20),
+                      onPressed: () {
+                        Share.share(
+                          '🚨 Alerta: ${alerta.titulo}\n\n${alerta.descripcion}',
+                          subject: 'Nueva alerta en Alert World',
+                        );
+                      },
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ],
+        ),
+      ),
+    ],
+  ),
+);
+
               },
             );
           }
-          if (state is AlertFailure) {
+          if (state is AlertError) {
             return Center(child: Text("Error: ${state.message}"));
           }
           return const Center(child: Text("No hay alerts disponibles."));

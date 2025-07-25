@@ -22,15 +22,6 @@ class AlertError extends AlertState {
   AlertError(this.message);
 }
 
-class AlertFailure extends AlertState {
-  final String message;
+class AlertSubmitting extends AlertState {}
 
-  AlertFailure(this.message);
-}
-
-// Estado opcional si quieres usar para UI separada
-class AlertLikeUpdated extends AlertState {
-  final List<AlertEntity> alerts;
-
-  AlertLikeUpdated(this.alerts);
-}
+class AlertSuccess extends AlertState {}

@@ -1,5 +1,4 @@
 import 'package:alert_world/features/alerts/domain/entities/alert_entity.dart';
-
 class AlertModel extends AlertEntity {
   AlertModel({
     required int id,
@@ -7,13 +6,19 @@ class AlertModel extends AlertEntity {
     required String titulo,
     required String descripcion,
     required String ubicacion,
-    String? mediaUrl, // URL multimedia genérica (imagen o video)
+    String? mediaUrl,
     List<String>? comentarios,
     String? usuarioNombre,
     String? usuarioAvatarUrl,
     required DateTime fecha,
     bool likedByUser = false,
     int likes = 0,
+
+    // Nuevos parámetros
+    String? tipoAlerta,
+    double? latitud,
+    double? longitud,
+    String? archivoPath,
   }) : super(
           id: id,
           usuarioId: usuarioId,
@@ -27,27 +32,34 @@ class AlertModel extends AlertEntity {
           fecha: fecha,
           likedByUser: likedByUser,
           likes: likes,
+          tipoAlerta: tipoAlerta,
+          latitud: latitud,
+          longitud: longitud,
+          archivoPath: archivoPath,
         );
 
   factory AlertModel.fromJson(Map<String, dynamic> json) {
-    final mediaUrl = json['mediaUrl'] as String?;
-
     return AlertModel(
       id: json['id'] ?? 0,
       usuarioId: json['user_id'] ?? 0,
       titulo: json['titulo'] ?? '',
       descripcion: json['descripcion'] ?? '',
       ubicacion: json['ubicacion'] ?? 'Ubicación desconocida',
-      mediaUrl: mediaUrl,
+      mediaUrl: json['mediaUrl'],
       comentarios: (json['comentarios'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
       usuarioNombre: json['usuario_nombre'],
       usuarioAvatarUrl: json['usuario_avatar'],
       fecha: DateTime.tryParse(json['fecha'] ?? '') ?? DateTime.now(),
-
       likedByUser: json['likedByUser'] ?? false,
       likes: json['likes'] ?? 0,
+
+      // Nuevos campos
+      tipoAlerta: json['tipo_alerta'],
+      latitud: (json['latitud'] != null) ? double.tryParse(json['latitud'].toString()) : null,
+      longitud: (json['longitud'] != null) ? double.tryParse(json['longitud'].toString()) : null,
+      archivoPath: json['archivo_path'],
     );
   }
 
@@ -65,6 +77,12 @@ class AlertModel extends AlertEntity {
       'fecha': fecha.toIso8601String(),
       'likedByUser': likedByUser,
       'likes': likes,
+
+      // Nuevos campos
+      'tipo_alerta': tipoAlerta,
+      'latitud': latitud,
+      'longitud': longitud,
+      'archivo_path': archivoPath,
     };
   }
 
@@ -82,6 +100,10 @@ class AlertModel extends AlertEntity {
       fecha: fecha,
       likedByUser: likedByUser,
       likes: likes,
+      tipoAlerta: tipoAlerta,
+      latitud: latitud,
+      longitud: longitud,
+      archivoPath: archivoPath,
     );
   }
 }

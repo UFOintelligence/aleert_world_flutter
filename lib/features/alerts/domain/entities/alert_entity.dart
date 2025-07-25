@@ -9,8 +9,13 @@ class AlertEntity {
   final String? usuarioNombre;
   final String? usuarioAvatarUrl;
   final DateTime fecha;
-  final int likes;
   final bool likedByUser;
+  final int likes;
+  final String? token; 
+  final String? tipoAlerta;
+  final double? latitud;
+  final double? longitud;
+  final String? archivoPath;
 
   AlertEntity({
     required this.id,
@@ -23,32 +28,14 @@ class AlertEntity {
     this.usuarioNombre,
     this.usuarioAvatarUrl,
     required this.fecha,
-    this.likes = 0,
     this.likedByUser = false,
+    this.likes = 0,
+    this.token,
+    this.tipoAlerta,
+    this.latitud,
+    this.longitud,
+    this.archivoPath,
   });
-
-  factory AlertEntity.fromJson(Map<String, dynamic> json) {
-    // Para comentarios, asumiendo que viene una lista de strings o null
-    List<String>? comentariosList;
-    if (json['comentarios'] != null) {
-      comentariosList = List<String>.from(json['comentarios']);
-    }
-
-    return AlertEntity(
-      id: json['id'] ?? 0,
-      usuarioId: json['usuario_id'] ?? 0,
-      titulo: json['titulo'] ?? '',
-      descripcion: json['descripcion'] ?? '',
-      ubicacion: json['ubicacion'] ?? '',
-      mediaUrl: json['media_url'],
-      comentarios: comentariosList,
-      usuarioNombre: json['usuario_nombre'],
-      usuarioAvatarUrl: json['usuario_avatar_url'],
-      fecha: DateTime.tryParse(json['fecha'] ?? '') ?? DateTime.now(),
-      likes: json['likes'] ?? 0,
-      likedByUser: json['liked_by_user'] ?? false,
-    );
-  }
 
   AlertEntity copyWith({
     int? id,
@@ -61,8 +48,13 @@ class AlertEntity {
     String? usuarioNombre,
     String? usuarioAvatarUrl,
     DateTime? fecha,
-    int? likes,
     bool? likedByUser,
+    int? likes,
+    String? tipoAlerta,
+    double? latitud,
+    double? longitud,
+    String? archivoPath,
+    String? token,
   }) {
     return AlertEntity(
       id: id ?? this.id,
@@ -75,8 +67,13 @@ class AlertEntity {
       usuarioNombre: usuarioNombre ?? this.usuarioNombre,
       usuarioAvatarUrl: usuarioAvatarUrl ?? this.usuarioAvatarUrl,
       fecha: fecha ?? this.fecha,
-      likes: likes ?? this.likes,
       likedByUser: likedByUser ?? this.likedByUser,
+      likes: likes ?? this.likes,
+      tipoAlerta: tipoAlerta ?? this.tipoAlerta,
+      latitud: latitud ?? this.latitud,
+      longitud: longitud ?? this.longitud,
+      archivoPath: archivoPath ?? this.archivoPath,
+      token: token ?? this.token,
     );
   }
 }

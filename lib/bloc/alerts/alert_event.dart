@@ -1,34 +1,26 @@
+import 'package:alert_world/features/alerts/domain/entities/alert_entity.dart';
+
 abstract class AlertEvent {}
 
-// 📥 Cargar alertas
+// Evento para cargar alertas
 class LoadAlerts extends AlertEvent {}
 
-// ➕ Crear alerta (se usará en una futura implementación)
-class CreateAlert extends AlertEvent {
-  final String titulo;
-  final String descripcion;
-  final String? ubicacion;
-  final String? mediaUrl;
+// Evento para enviar nueva alerta con entidad AlertEntity
+class SubmitAlertEvent extends AlertEvent {
+  final AlertEntity alert;
 
-  CreateAlert({
-    required this.titulo,
-    required this.descripcion,
-    this.ubicacion,
-    this.mediaUrl,
-  });
+  SubmitAlertEvent(this.alert);
 }
 
-// ❤️ Alternar Like
+// Evento para toggle like
 class ToggleLikeEvent extends AlertEvent {
   final int alertId;
   final String userId;
-  final String token; 
-
+  final String token;
 
   ToggleLikeEvent({
     required this.alertId,
     required this.userId,
-  required this.token, 
-
+    required this.token,
   });
 }

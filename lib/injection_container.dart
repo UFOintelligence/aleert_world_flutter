@@ -12,9 +12,11 @@ import 'features/auth/domain/usecases/register_user.dart';
 import 'package:alert_world/bloc/alerts/alert_bloc.dart';
 import 'package:alert_world/features/alerts/domain/usecases/get_alertas.dart';
 import 'package:alert_world/features/alerts/domain/usecases/toggle_like.dart';
-import 'package:alert_world/features/alerts/data/datasources/alert_remote_data_source.dart';
+import 'package:alert_world/features/alerts/data/datasources/alert_remote_data_source.impl.dart';
 import 'package:alert_world/features/alerts/domain/repositories/alert_repository.dart';
 import 'package:alert_world/features/alerts/data/repositories/alert_repository_impl.dart';
+import 'package:alert_world/features/alerts/data/datasources/alert_remote_data_source.dart';
+import 'package:alert_world/features/alerts/domain/usecases/create_alert.dart';
 
 final sl = GetIt.instance;
 
@@ -47,9 +49,10 @@ Future<void> init() async {
   sl.registerLazySingleton<GetAlertas>(() => GetAlertas(sl<AlertRepository>()));
 
   sl.registerLazySingleton<ToggleLike>(() => ToggleLike(sl<AlertRepository>()));
-
+ sl.registerLazySingleton<CreateAlert>(() => CreateAlert(sl<AlertRepository>()));
   sl.registerFactory(() => AlertBloc(
         getAlertasUseCase: sl<GetAlertas>(),
         toggleLikeUseCase: sl<ToggleLike>(),
+        createAlertUseCase: sl<CreateAlert>(),
       ));
 }
